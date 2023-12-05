@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Game</title>
+    </head>
+    <body>
+        <h1>Game</h1>
+        <h2>Your ID: <span id="ws-id">{{ user_id }}</span></h2>
+        <p>
+            <span id="displayed-message" style="color:#4a8a35;">
+                ここに問題が表示されます...
+            </span>
+        <p>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off" placeholder="Write your message"/>
+            <button>Send</button>
+        </form>
+        <ul id='icons'>
+            {% for icon in icons %}
+                <img src="/static/{{ icon.name }}/{{ icon.name }}.png"
+                width="64"
+                height="64"
+                id="icon-{{ icon.name }}",
+                class="google-cloud-icons"
+                style="cursor: pointer;"
+                title="{{ icon.name }}"
+                onclick="clickGoogleCloudIcons(event, this.id)"
+                />
+            {% endfor %}
+        </ul>
+        <p>
+            <form action="" onsubmit="startKaruta(event, this.id)">
+                <button id="bt-start-karuta">かるたゲームを始める</button>
+            </form>
+        </p>
+        <h2>システムメッセージ</h2>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var host = location.host
+            var base64d_user_id = "{{ base64d_user_id }}"
+            var protocol = host.startsWith("localhost") ? "ws" : "wss"
+            var ws = new WebSocket(`${protocol}://${host}/ws/${base64d_user_id}`);
+            var users = 
+            // on message
+            ws.onmessage = function(event) {
+                var evdata = JSON.parse(event.data)
+
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+
+                console.log(evdata);
+                switch (evdata["messageType"]) {
+                    case "START_GAME":
+                        disableStartGameBtn()
+                        break
+                    case "HINT_START":
+                        // Hint startで、上部のヒントエリアの文字列を消す
+                        clearDisplayedMessage()
+                        updateDisplayedMessage("[Choose appropriate Google Cloud Service]<br>")
+                        break
+                    case "HINT_END":
+                        updateDisplayedMessage("<br>[End]")
+                        break
+                    case "HINT":
+                        updateDisplayedMessage(evdata.value)
+                        break
+                    case "USERS":
+                        console.log(evdata.value)
+                        break
+                    case "UI":
+                        if (evdata.value.isKarutaStarted) {
+                            disableStartGameBtn()
+                        }
+                        break
+                    default:
+                        // SYSTEM or MESSAGE
+                        if (evdata["messageType"] == "SYSTEM") {
+                            message.setAttribute("style", "color:#4a8a35;")
+                        } else if (evdata["messageType"] == "SYSTEM_GAME") {
+                            message.setAttribute("style", "color:#f1948A;")
+                        }
+                        var msg = evdata.user + ": " + evdata.value
+                        var content = document.createTextNode(msg)
+                        message.appendChild(content)
+                        messages.insertBefore(message, messages.children[0])
+                        break
+                }
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+            function startKaruta(event, id) {
+                ws.send("[StartGame]")
+                disableStartGameBtn()
+                event.preventDefault()
+            }
+            function clickGoogleCloudIcons(event, id) {
+                console.log(id);
+                ws.send("[Choose]," + id)
+                event.preventDefault()
+            }
+            function disableStartGameBtn() {
+                document.querySelector("#bt-start-karuta").setAttribute("disabled", "disabled")
+            }
+            function clearDisplayedMessage() {
+                document.querySelector("#displayed-message").innerHTML = ""
+            }
+            function updateDisplayedMessage(msg, delimiter=" ") {
+                document.querySelector("#displayed-message").innerHTML += delimiter + msg
+            }
+        </script>
+    </body>
+</html>

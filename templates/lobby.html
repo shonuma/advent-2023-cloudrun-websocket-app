@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Entrance</title>
+    </head>
+    <body>
+        <h1>Entrance</h1>
+        <h2>好きなユーザIDを入力して入室してください</h2>
+        <span id="error-message" style="color:#ff9966;">
+        </span>
+        <p>
+            <form action="" onsubmit="sendMessage(event)">
+                <input type="text" id="messageText" autocomplete="off" placeholder="Enter your ID..."/>
+                <button>Enter</button>
+            </form>
+        </p>
+        <script>
+            function sendMessage(event) {
+                var input = document.getElementById("messageText").value
+                console.log(input)
+                if (input == "") {
+                    document.querySelector("#error-message").textContent = "[Warning]ユーザIDを入力してください。"
+                } else {
+                    var date = Date.now()
+                    var uid  = btoa(input + "_" + date)
+                    location.href = "/game/" + uid
+                }
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
