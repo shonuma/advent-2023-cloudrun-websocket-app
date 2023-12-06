@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 import time
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -12,11 +13,15 @@ from models.constants import gcp_icons
 
 app = FastAPI()
 
+logger = logging.getLogger('uvicorn.app')
+
+
 templates = Jinja2Templates(directory="templates")
 
 users = {}
 answers = {}
 begin_time = 0.0
+
 
 # https://fastapi.tiangolo.com/advanced/websockets/
 class ConnectionManager:
@@ -118,8 +123,10 @@ def game_init():
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await manager.connect(websocket)
+    global users
     user_name = base64.b64decode(client_id).decode()
-    users[client_id] = 1
+    if client_id not in users:
+        users[client_id] = 1
     await manager.send_personal_message(
         create_message(
             "UI",
@@ -133,6 +140,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             global answers
             global status
             global begin_time
+            logger.info(f"Get messages: {str(data)} from {client_id}, {user_name}")
+            logger.info(f"users: {str(users)}")
+            logger.info(f"status: {str(status)}")
             # かるたゲームを始める
             user_name = base64.b64decode(client_id).decode()
             # protocol の解析
@@ -158,7 +168,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         else:
                             # 選択済みなのでスルー
                             pass
-                else:
+                elif status["isKarutaStarted"]:
                     status["isHinting"] = True
                     answers = {}
                     if is_parent(client_id):
@@ -215,10 +225,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                                 "次のゲーム開始までお待ち下さい。"
                             )
                         )
-                        game_init()
+                        status["isHintEnded"] = False
+                        status["isHinting"] = False
+                    else:
+                        # 何もなし
+                        pass
             elif data == "[StartGame]":
                 # 親を決める
                 users[client_id] = 10
+                status["isKarutaStarted"] = True
                 await manager.send_personal_message(
                     create_message(
                         "SYSTEM",
@@ -238,6 +253,21 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         f"{user_name} さんがかるたゲームを始めました！開始までもう少々お待ち下さい",
                     )
                 )
+            elif data == "[EndGame]":
+                users[client_id] = 10
+                status["isKarutaStarted"] = False
+                await manager.broadcast(
+                    create_message(
+                        "END_GAME",
+                        "",
+                    )
+                )
+                await manager.broadcast(
+                    create_message(
+                        "SYSTEM",
+                        "ゲームを終了しました。",
+                    )
+                )
             else:
                 await manager.send_personal_message(
                     create_message(
@@ -255,6 +285,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 )
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+        if users.get(client_id) == 10:
+            game_init()
         users.pop(client_id, None)
         await manager.broadcast(
             create_message(
