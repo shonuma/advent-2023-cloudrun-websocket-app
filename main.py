@@ -182,6 +182,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             ),
                             websocket
                         )
+                        await manager.broadcast(
+                            create_message(
+                                "SYSTEM_GAME",
+                                f"画面上部に表示されるヒントに該当する Google Cloud 製品を選択してください！"
+                            )
+                        )
                         begin_time = time.time()
                         await manager.broadcast(
                             create_message("HINT_START", {})

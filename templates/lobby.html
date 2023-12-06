@@ -22,7 +22,7 @@
                     document.querySelector("#error-message").textContent = "[Warning]ユーザIDを入力してください。"
                 } else {
                     var date = Date.now()
-                    var uid  = btoa(input + "_" + date)
+                    var uid  = btoa(input + "#" + date)
                     location.href = "/game/" + uid
                 }
                 event.preventDefault()

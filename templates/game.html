@@ -14,7 +14,7 @@
             <p>
             <form action="" onsubmit="sendMessage(event)">
                 <input type="text" id="messageText" autocomplete="off" placeholder="Write your message"/>
-                <button>Send</button>
+                <button id="bt-send-chat">Send</button>
             </form>
             <ul id='icons'>
                 {% for icon in icons %}
@@ -64,6 +64,7 @@
                         clearDisplayedMessage()
                         if (inGame) {
                             disableStartGameBtn()
+                            disableChatBtn()
                         }
                         updateDisplayedMessage("[Choose appropriate Google Cloud Service]<br>")
                         break
@@ -71,6 +72,7 @@
                         updateDisplayedMessage("<br>[End]")
                         if (inGame) {
                             enableStartGameBtn()
+                            enablechatBtn()
                         }
                         break
                     case "HINT":
@@ -122,6 +124,12 @@
                 ws.send("[Choose]," + id)
                 event.preventDefault()
             }
+            function enablechatBtn() {
+                document.querySelector("#bt-send-chat").removeAttribute("disabled")
+            }
+            function disableChatBtn() {
+                document.querySelector("#bt-send-chat").setAttribute("disabled", "disabled")
+            }
             function enableStartGameBtn() {
                 document.querySelector("#bt-start-karuta").removeAttribute("disabled")
             }
@@ -133,9 +141,9 @@
                 setTimeout(
                     function() {
                         if (inGame) {
-                            document.querySelector("#bt-start-karuta").innerHTML = "かるたゲームを始める"
-                        } else {
                             document.querySelector("#bt-start-karuta").innerHTML = "かるたゲームを終了する"
+                        } else {
+                            document.querySelector("#bt-start-karuta").innerHTML = "かるたゲームを始める"
                         }
                         document.querySelector("#bt-start-karuta").enableStartGameBtn()      
                     },
